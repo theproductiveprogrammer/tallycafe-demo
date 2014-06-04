@@ -1,8 +1,48 @@
 <html>
     <head>
         <title>Tally Cafe</title>
+        <script src="js/react.js"></script>
+        <script src="js/JSXTransformer.js"></script>
     </head>
     <body>
         <h1>Tally Cafe</h1>
+        <div id="orders"></div>
+        <script type="text/jsx">
+           /** @jsx React.DOM */
+           var Order = React.createClass ({
+               render: function () {
+                   return (
+                   <div>
+                       <img src={this.props.img} />
+                       {this.props.name}
+                   </div>
+                   );
+               }
+           });
+
+            var Orders = React.createClass ({
+                getInitialState: function () {
+                    return { ordermenu: [] };
+                },
+                componentDidMount: function () {
+                    call_ajax (this.props.source, function (data) {
+                        this.setState ({ ordermenu: JSON.parse(data) });
+                    }.bind (this));
+                },
+                render: function () {
+                        var orderlist = this.state.ordermenu.map (function (o) {
+                            return (
+                                <li>
+                                    <Order name={o.name} img={o.img} />
+                                </li>
+                                );
+                        });
+                        return <ul>{orderlist}</ul>;
+                }
+            });
+
+            React.renderComponent (<Orders source="/ordermenu" />,
+                                    document.getElementById ('orders'));
+        </script>
     </body>
 </html>

@@ -4,6 +4,7 @@ var fs   = require ('fs');
 
 var svr = http.createServer (function (req, res) {
         if (req.method == 'GET') return handleGet (req, res);
+        if (req.method == 'POST') return handlePost (req, res);
         return handleError (res, 500, "Method not handled: " + req.method);
         });
 
@@ -19,6 +20,7 @@ var DEFAULT_PAGE = "index.html";
 var DOC_ROOT = "www";
 
 function handleGet (req, res) {
+
     var filepath = req.url;
 
     if (filepath === '/') filepath = DEFAULT_PAGE;
@@ -30,4 +32,20 @@ function handleGet (req, res) {
     stream.pipe (res);
 }
 
+function handlePost (req, res) {
+    if (req.url === '/ordermenu') return getOrderMenu (req, res);
+    return handleError (res, 400, "Post not handled: " + req.url);
+}
+
+function getOrderMenu (req, res) {
+
+    var orders = [
+        { name: 'Coffee', img: 'img/coffee.png' },
+        { name: 'Tea', img: 'img/tea.png' },
+        { name: 'Biscuits', img: 'img/biscuits.png' },
+    ];
+
+    res.writeHead (200, { 'Content-Type' : 'application/json' });
+    res.end (JSON.stringify (orders));
+}
 
