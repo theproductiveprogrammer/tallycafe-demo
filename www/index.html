@@ -3,6 +3,7 @@
         <title>Tally Cafe</title>
         <script src="js/react.js"></script>
         <script src="js/JSXTransformer.js"></script>
+        <script src="js/tc-ajax.js"></script>
     </head>
     <body>
         <h1>Tally Cafe</h1>
@@ -12,11 +13,19 @@
            var Order = React.createClass ({
                render: function () {
                    return (
-                   <div>
+                   <div onClick={this.postf}>
                        <img src={this.props.img} />
                        {this.props.name}
                    </div>
                    );
+               },
+               postf: function () {
+                   var name = this.props.name;
+                   call_ajax ('/order/' + name, function () {
+                        alert (name + ' Order Sent!');
+                       }, function () {
+                        alert (name + ' Order Failed!');
+                   });
                }
            });
 
