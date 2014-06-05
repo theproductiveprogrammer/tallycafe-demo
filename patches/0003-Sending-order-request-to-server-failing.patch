@@ -1,0 +1,45 @@
+From 26e40578875613f29e2d546f6bec99d15991d287 Mon Sep 17 00:00:00 2001
+From: b_d <1browndragon@gmail.com>
+Date: Thu, 5 Jun 2014 13:22:10 +0530
+Subject: [PATCH 3/6] Sending order request to server (failing)
+
+---
+ www/index.html |   11 ++++++++++-
+ 1 files changed, 10 insertions(+), 1 deletions(-)
+
+diff --git a/www/index.html b/www/index.html
+index 328a366..181e1b2 100644
+--- a/www/index.html
++++ b/www/index.html
+@@ -3,6 +3,7 @@
+         <title>Tally Cafe</title>
+         <script src="js/react.js"></script>
+         <script src="js/JSXTransformer.js"></script>
++        <script src="js/tc-ajax.js"></script>
+     </head>
+     <body>
+         <h1>Tally Cafe</h1>
+@@ -12,11 +13,19 @@
+            var Order = React.createClass ({
+                render: function () {
+                    return (
+-                   <div>
++                   <div onClick={this.postf}>
+                        <img src={this.props.img} />
+                        {this.props.name}
+                    </div>
+                    );
++               },
++               postf: function () {
++                   var name = this.props.name;
++                   call_ajax ('/order/' + name, function () {
++                        alert (name + ' Order Sent!');
++                       }, function () {
++                        alert (name + ' Order Failed!');
++                   });
+                }
+            });
+ 
+-- 
+1.7.1
+

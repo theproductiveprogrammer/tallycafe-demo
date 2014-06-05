@@ -1,0 +1,156 @@
+From 90a91901fefa8b51554ee9bccac1403374713749 Mon Sep 17 00:00:00 2001
+From: b_d <1browndragon@gmail.com>
+Date: Fri, 6 Jun 2014 13:33:39 +0530
+Subject: [PATCH 5/6] Now fulfilling orders! Get your coffee here!
+
+---
+ tallycafe.js    |   47 +++++++++++++++++++++++++++++++++++++++++++++--
+ www/orders.html |   26 +++++++++++++++++++++-----
+ 2 files changed, 66 insertions(+), 7 deletions(-)
+
+diff --git a/tallycafe.js b/tallycafe.js
+index 06d3f52..8aeb6ff 100644
+--- a/tallycafe.js
++++ b/tallycafe.js
+@@ -3,6 +3,7 @@ var path = require ('path');
+ var fs   = require ('fs');
+ var ck   = require ('cookies');
+ var qs   = require ('querystring');
++var ws   = require ('socket.io');
+ 
+ var svr = http.createServer (function (req, res) {
+         if (req.method == 'GET') return handleGet (req, res);
+@@ -10,8 +11,19 @@ var svr = http.createServer (function (req, res) {
+         return handleError (res, 500, "Method not handled: " + req.method);
+         });
+ 
++var io = ws.listen (svr, { log: false });
++
+ svr.listen (8080);
+ 
++var PANTRY_SOCKET;
++
++io.sockets.on ('connection', function (socket) {
++            socket.on ('pantry', function () {
++                PANTRY_SOCKET = socket;
++                PANTRY_SOCKET.on ('disconnect', function () { PANTRY_SOCKET = null; });
++            });
++        });
++
+ function handleError (res, status, err) {
+     console.error (err);
+     res.writeHead (status);
+@@ -27,24 +39,39 @@ var DEFAULT_PAGE = "index.html";
+ var LOGIN_PAGE = "login.html";
+ var DOC_ROOT = "www";
+ 
++function handleGetFailure (err, filepath, res) {
++    var defaultimg = filepath.match (/\/emp\/.*_(.*.png)/);
++    if (defaultimg) {
++        var stream = fs.createReadStream (DOC_ROOT + '/emp/' + defaultimg[1]);
++        stream.on ('error', function (err) { return handleError (res, 404, err); });
++        stream.pipe (res);
++    }
++    else return handleError (res, 404, err);
++}
++
+ function handleGet (req, res) {
+ 
+     var filepath = req.url;
+     var cookies  = ck.getCookies (req);
+ 
+-    if (userNeedsLogin (cookies)) filepath = LOGIN_PAGE;
++    if (filepath === '/orders.html') {
++        if (req.connection.remoteAddress != '192.168.1.161') return handleError (res, 404,
++                "Connecting to pantry from " + req.connection.remoteAddress);
++    }
++    else if (userNeedsLogin (cookies)) filepath = LOGIN_PAGE;
+     else if (filepath === '/') filepath = DEFAULT_PAGE;
+ 
+     filepath = path.join (DOC_ROOT, path.join ('/', filepath));
+ 
+     var stream = fs.createReadStream (filepath);
+-    stream.on ('error', function (err) { return handleError (res, 404, err); });
++    stream.on ('error', function (err) { return handleGetFailure (err, filepath, res); });
+     stream.pipe (res);
+ }
+ 
+ function handlePost (req, res) {
+     if (req.url === '/ordermenu') return getOrderMenu (req, res);
+     if (req.url === '/login') return handleLogin (req, res);
++    if (req.url.match (/order\//)) return handleOrder (req, res);
+     return handleError (res, 400, "Post not handled: " + req.url);
+ }
+ 
+@@ -70,3 +97,19 @@ function handleLogin (req, res) {
+                 res.end ();
+             });
+ }
++
++function handleOrder (req, res) {
++    if (!PANTRY_SOCKET) return handleError (res, 503, "Pantry not connected to take orders");
++
++    var order = req.url.substr ('/order/'.length);
++
++    var cookies = ck.getCookies (req);
++
++    order = { order: order, username: cookies['username'], ext: cookies['ext'] };
++
++    PANTRY_SOCKET.emit ('order', order);
++
++    res.writeHead (302, { 'Location': '/' } );
++    res.end ();
++}
++
+diff --git a/www/orders.html b/www/orders.html
+index f1b629a..5c0990e 100644
+--- a/www/orders.html
++++ b/www/orders.html
+@@ -4,6 +4,7 @@
+         <script src="js/react.js"></script>
+         <script src="js/JSXTransformer.js"></script>
+         <script src="js/tc-ajax.js"></script>
++        <script src="/socket.io/socket.io.js"></script>
+         <link rel="stylesheet" type="text/css" href="css/tc.css">
+     </head>
+     <body>
+@@ -16,16 +17,31 @@
+                     return { orders: [], ticks: [] };
+                 },
+                 componentDidMount: function () {
+-                    /* After mounting, connect to server
+-                       websocket and set up the timer */
++                    var socket = io.connect ();
++                    socket.emit ('pantry');
++                    socket.on ('order', this.newOrder.bind (this));
++                    window.setInterval (this.onTick.bind (this), 1000);
+                 },
+                 newOrder: function (o) {
+-                    /* Set up a new, modified, order state */
++                    var orders = this.state.orders.concat (o);
++                    var ticks = this.state.ticks.concat (0);
++                    this.setState ({ orders: orders, ticks: ticks});
+                 },
+                 delOrder: function (i) {
+-                    /* Set up a deleted, modified, order state */
++                    var orders = this.state.orders.slice (0);
++                    var ticks = this.state.ticks.slice (0);
++                    orders.splice (i, 1); ticks.splice (i, 1);
++                    this.setState ({ orders: orders, ticks: ticks});
++                },
++                onTick: function () {
++                    var ticks = this.state.ticks.slice (0).map (function (i) { return i+1; });
++                    this.setState ({ ticks: ticks });
++                },
++                getUserState: function (i) {
++                    if (this.state.ticks[i] > 45) return "angry";
++                    if (this.state.ticks[i] > 20) return "serious";
++                    return "happy";
+                 },
+-                /* Add event handler for tick and user state on tick */
+                 getUserImg: function (o, i) {
+                     return 'emp/' + o.username + '_' + this.getUserState (i) + '.png';
+                 },
+-- 
+1.7.1
+

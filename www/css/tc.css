@@ -1,0 +1,31 @@
+ul { list-style: none; }
+ul li {
+    float: left;
+    margin: 5px;
+    padding: 5px;
+}
+ul li .group {
+    display: inline;
+    list-style: none;
+    float: left;
+    text-align: center;
+    font-weight: bold;
+}
+ul li .group img {
+    margin: 0 auto;
+    display: block;
+    padding-bottom: 3px;
+}
+ul li.happy {
+    color: green;
+    border: 1px solid green;
+}
+ul li.serious {
+    color: black;
+    border: 1px solid black;
+}
+ul li.angry {
+    color: red;
+    border: 1px solid red;
+}
+

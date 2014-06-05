@@ -1,0 +1,61 @@
+<html>
+    <head>
+        <title>Tally Cafe</title>
+        <script src="js/react.js"></script>
+        <script src="js/JSXTransformer.js"></script>
+        <script src="js/tc-ajax.js"></script>
+        <link rel="stylesheet" type="text/css" href="css/tc.css">
+    </head>
+    <body>
+        <h1>Tally Cafe Pantry</h1>
+        <div id="orders"></div>
+        <script type="text/jsx">
+            /** @jsx React.DOM */
+            var OrderList = React.createClass ({
+                getInitialState: function () {
+                    return { orders: [], ticks: [] };
+                },
+                componentDidMount: function () {
+                    /* After mounting, connect to server
+                       websocket and set up the timer */
+                },
+                newOrder: function (o) {
+                    /* Set up a new, modified, order state */
+                },
+                delOrder: function (i) {
+                    /* Set up a deleted, modified, order state */
+                },
+                /* Add event handler for tick and user state on tick */
+                getUserImg: function (o, i) {
+                    return 'emp/' + o.username + '_' + this.getUserState (i) + '.png';
+                },
+                render: function (o) {
+                    var list = this.state.orders.map (function (o, i) {
+                        var orderimg = 'img/' + o.order.toLowerCase () + '.png';
+                        var userimg  = this.getUserImg(o, i);
+                        var style    = this.getUserState (i);
+                        return (
+                        <li onClick={this.delOrder.bind(this, i)}  className={style}>
+                            <span className="group">
+                                <img src={orderimg} />
+                                <span className="label">{o.order}</span>
+                            </span>
+                            <span className="group">
+                                <img src={userimg} />
+                                <span className="label">{o.username}</span>
+                                <span className="label">(x{o.ext})</span>
+                            </span>
+                        </li>
+                        );
+                    }.bind (this));
+
+                    return <ul>{list}</ul>;
+                }
+            });
+
+            React.renderComponent (<OrderList />,
+                                    document.getElementById ('orders'));
+        </script>
+    </body>
+</head>
+

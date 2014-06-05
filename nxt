@@ -1,0 +1,13 @@
+#!/bin/sh
+# Every call switches to the "next-step" branch (step1, step2,
+# step3...). This allows us to force the code to the state
+# we want at each step
+
+BRANCHNUM=$(git symbolic-ref HEAD | sed -n 's,refs/heads/step\([0-9]*\)$,\1,p')
+NXT=$((BRANCHNUM + 1))
+if git checkout -qf 2> /dev/null step$NXT; then
+    echo '<' $NXT '>'
+else
+    echo '<end>'
+    git checkout -qf master
+fi

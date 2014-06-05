@@ -1,0 +1,107 @@
+From 0052b5f325d0342f0d6ec3b51edf70b968511947 Mon Sep 17 00:00:00 2001
+From: b_d <1browndragon@gmail.com>
+Date: Wed, 4 Jun 2014 20:10:55 +0530
+Subject: [PATCH 2/6] Using react to display orders
+
+---
+ tallycafe.js   |   18 ++++++++++++++++++
+ www/index.html |   40 ++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 58 insertions(+), 0 deletions(-)
+
+diff --git a/tallycafe.js b/tallycafe.js
+index 57e93b0..584dab6 100644
+--- a/tallycafe.js
++++ b/tallycafe.js
+@@ -4,6 +4,7 @@ var fs   = require ('fs');
+ 
+ var svr = http.createServer (function (req, res) {
+         if (req.method == 'GET') return handleGet (req, res);
++        if (req.method == 'POST') return handlePost (req, res);
+         return handleError (res, 500, "Method not handled: " + req.method);
+         });
+ 
+@@ -19,6 +20,7 @@ var DEFAULT_PAGE = "index.html";
+ var DOC_ROOT = "www";
+ 
+ function handleGet (req, res) {
++
+     var filepath = req.url;
+ 
+     if (filepath === '/') filepath = DEFAULT_PAGE;
+@@ -30,4 +32,20 @@ function handleGet (req, res) {
+     stream.pipe (res);
+ }
+ 
++function handlePost (req, res) {
++    if (req.url === '/ordermenu') return getOrderMenu (req, res);
++    return handleError (res, 400, "Post not handled: " + req.url);
++}
++
++function getOrderMenu (req, res) {
++
++    var orders = [
++        { name: 'Coffee', img: 'img/coffee.png' },
++        { name: 'Tea', img: 'img/tea.png' },
++        { name: 'Biscuits', img: 'img/biscuits.png' },
++    ];
++
++    res.writeHead (200, { 'Content-Type' : 'application/json' });
++    res.end (JSON.stringify (orders));
++}
+ 
+diff --git a/www/index.html b/www/index.html
+index b264732..328a366 100644
+--- a/www/index.html
++++ b/www/index.html
+@@ -1,8 +1,48 @@
+ <html>
+     <head>
+         <title>Tally Cafe</title>
++        <script src="js/react.js"></script>
++        <script src="js/JSXTransformer.js"></script>
+     </head>
+     <body>
+         <h1>Tally Cafe</h1>
++        <div id="orders"></div>
++        <script type="text/jsx">
++           /** @jsx React.DOM */
++           var Order = React.createClass ({
++               render: function () {
++                   return (
++                   <div>
++                       <img src={this.props.img} />
++                       {this.props.name}
++                   </div>
++                   );
++               }
++           });
++
++            var Orders = React.createClass ({
++                getInitialState: function () {
++                    return { ordermenu: [] };
++                },
++                componentDidMount: function () {
++                    call_ajax (this.props.source, function (data) {
++                        this.setState ({ ordermenu: JSON.parse(data) });
++                    }.bind (this));
++                },
++                render: function () {
++                        var orderlist = this.state.ordermenu.map (function (o) {
++                            return (
++                                <li>
++                                    <Order name={o.name} img={o.img} />
++                                </li>
++                                );
++                        });
++                        return <ul>{orderlist}</ul>;
++                }
++            });
++
++            React.renderComponent (<Orders source="/ordermenu" />,
++                                    document.getElementById ('orders'));
++        </script>
+     </body>
+ </html>
+-- 
+1.7.1
+
