@@ -1,6 +1,8 @@
 var http = require ('http');
 var path = require ('path');
 var fs   = require ('fs');
+var ck   = require ('cookies');
+var qs   = require ('querystring');
 
 var svr = http.createServer (function (req, res) {
         if (req.method == 'GET') return handleGet (req, res);
@@ -16,14 +18,22 @@ function handleError (res, status, err) {
     res.end ();
 }
 
+function userNeedsLogin (cookies) {
+    if (cookies['username'] && cookies['ext']) return false;
+    return true;
+}
+
 var DEFAULT_PAGE = "index.html";
+var LOGIN_PAGE = "login.html";
 var DOC_ROOT = "www";
 
 function handleGet (req, res) {
 
     var filepath = req.url;
+    var cookies  = ck.getCookies (req);
 
-    if (filepath === '/') filepath = DEFAULT_PAGE;
+    if (userNeedsLogin (cookies)) filepath = LOGIN_PAGE;
+    else if (filepath === '/') filepath = DEFAULT_PAGE;
 
     filepath = path.join (DOC_ROOT, path.join ('/', filepath));
 
@@ -34,6 +44,7 @@ function handleGet (req, res) {
 
 function handlePost (req, res) {
     if (req.url === '/ordermenu') return getOrderMenu (req, res);
+    if (req.url === '/login') return handleLogin (req, res);
     return handleError (res, 400, "Post not handled: " + req.url);
 }
 
@@ -49,3 +60,13 @@ function getOrderMenu (req, res) {
     res.end (JSON.stringify (orders));
 }
 
+function handleLogin (req, res) {
+    var postdata = '';
+    req.on ('data', function (d) { postdata += d; });
+    req.on ('end', function () {
+                postdata = qs.parse (postdata);
+                ck.setCookies (res, postdata);
+                res.writeHead (302, { 'Location': '/' } );
+                res.end ();
+            });
+}
