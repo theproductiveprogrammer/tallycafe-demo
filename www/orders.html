@@ -4,6 +4,7 @@
         <script src="js/react.js"></script>
         <script src="js/JSXTransformer.js"></script>
         <script src="js/tc-ajax.js"></script>
+        <script src="/socket.io/socket.io.js"></script>
         <link rel="stylesheet" type="text/css" href="css/tc.css">
     </head>
     <body>
@@ -16,16 +17,31 @@
                     return { orders: [], ticks: [] };
                 },
                 componentDidMount: function () {
-                    /* After mounting, connect to server
-                       websocket and set up the timer */
+                    var socket = io.connect ();
+                    socket.emit ('pantry');
+                    socket.on ('order', this.newOrder.bind (this));
+                    window.setInterval (this.onTick.bind (this), 1000);
                 },
                 newOrder: function (o) {
-                    /* Set up a new, modified, order state */
+                    var orders = this.state.orders.concat (o);
+                    var ticks = this.state.ticks.concat (0);
+                    this.setState ({ orders: orders, ticks: ticks});
                 },
                 delOrder: function (i) {
-                    /* Set up a deleted, modified, order state */
+                    var orders = this.state.orders.slice (0);
+                    var ticks = this.state.ticks.slice (0);
+                    orders.splice (i, 1); ticks.splice (i, 1);
+                    this.setState ({ orders: orders, ticks: ticks});
                 },
-                /* Add event handler for tick and user state on tick */
+                onTick: function () {
+                    var ticks = this.state.ticks.slice (0).map (function (i) { return i+1; });
+                    this.setState ({ ticks: ticks });
+                },
+                getUserState: function (i) {
+                    if (this.state.ticks[i] > 45) return "angry";
+                    if (this.state.ticks[i] > 20) return "serious";
+                    return "happy";
+                },
                 getUserImg: function (o, i) {
                     return 'emp/' + o.username + '_' + this.getUserState (i) + '.png';
                 },
